@@ -1,5 +1,11 @@
 from fastapi import FastAPI,HTTPException
+from pydantic import BaseModel
 import sqlite3
+
+class Customers(BaseModel):
+    cust_id: int | None = None
+    name: str
+    phone: str
 
 app = FastAPI()
 
@@ -16,12 +22,9 @@ async def read_customers(id: int, q =None):
     conn.close()
 
     if(customer != None):
-        return{
-            "id": customer[0],
-            "name": customer[1],
-            "phone": customer[2]
-        }
-    raise HTTPException(status_code=404, detail="Item not found")
+        return Customers(cust_id= customer[0], name = customer[1], phone = customer[2])
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
 
 @app.get("/items/{id}")
 async def read_items(id: int, q =None):
@@ -37,7 +40,8 @@ async def read_items(id: int, q =None):
             "name": item[1],
             "price": item[2]
         }
-    raise HTTPException(status_code=404, detail="Item not found")
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
 
 @app.get("/oders/{id}")
 async def read_items(id: int, q =None):
@@ -74,5 +78,47 @@ async def read_items(id: int, q =None):
     
     if response !=None:
         return response
-   
-    raise HTTPException(status_code=404, detail="Item not found")
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+@app.post("/coustomers/")
+async def create_customer(customers: Customers):
+    if customers.cust_id != None:
+        raise HTTPException(status_code=400, detail="cust_id cannot be not null fro post method.")
+    conn = sqlite3.connect("db.sqlite")
+    curr = conn.cursor()
+    curr.execute("INSERT INTO customers(cust_name, phone) VALUES(?,?)",(customers.name, customers.phone))
+    customers.cust_id = curr.lastrowid
+    conn.commit()
+    conn.close()
+    return customers
+
+@app.put("/customers/{cust_id}")
+async def update_customer(cust_id: int, customers: Customers):
+    if customers.cust_id != None and customers.cust_id != cust_id:
+        raise HTTPException(status_code=400, detail="Customer Id does not match Id in the path")
+    conn = sqlite3.connect("db.sqlite")
+    curr = conn.cursor()
+    curr.execute("SELECT cust_id FROM customers WHERE cust_id = ?",(cust_id,))
+    id = curr.fetchone()
+    if (id != None):
+        curr.execute("UPDATE customers SET cust_name =? , phone=? WHERE cust_id=?",(customers.name, customers.phone,cust_id))    
+        conn.commit()
+        conn.close()
+        customers.cust_id = cust_id
+        return customers
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+
+@app.delete("/customers/{cust_del_id}")
+async def delete_customer(cust_del_id: int):
+    conn = sqlite3.connect("db.sqlite")
+    curr = conn.cursor()
+    curr.execute("DELETE FROM customers WHERE cust_id = ?",(cust_del_id,))    
+    total_changes = conn.total_changes
+    conn.commit()
+    conn.close()
+    if total_changes != 1:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return total_changes
