@@ -7,6 +7,11 @@ class Customers(BaseModel):
     name: str
     phone: str
 
+class Item(BaseModel):
+    item_id: int | None = None
+    item_name: str
+    price: float
+
 app = FastAPI()
 
 @app.get("/")
@@ -84,7 +89,7 @@ async def read_items(id: int, q =None):
 @app.post("/coustomers/")
 async def create_customer(customers: Customers):
     if customers.cust_id != None:
-        raise HTTPException(status_code=400, detail="cust_id cannot be not null fro post method.")
+        raise HTTPException(status_code=400, detail="cust_id cannot be not null for post method.")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("INSERT INTO customers(cust_name, phone) VALUES(?,?)",(customers.name, customers.phone))
@@ -92,6 +97,18 @@ async def create_customer(customers: Customers):
     conn.commit()
     conn.close()
     return customers
+
+@app.post("/items/")
+async def create_item(items: Item):
+    if items.item_id != None:
+        raise HTTPException(status_code=400, detail="item_id cannot be not null for post method.")
+    conn = sqlite3.connect("db.sqlite")
+    curr = conn.cursor()
+    curr.execute("INSERT INTO items(item_name, price) VALUES(?,?)",(items.item_name, items.price))
+    items.item_id = curr.lastrowid
+    conn.commit()
+    conn.close()
+    return items
 
 @app.put("/customers/{cust_id}")
 async def update_customer(cust_id: int, customers: Customers):
@@ -109,6 +126,23 @@ async def update_customer(cust_id: int, customers: Customers):
         return customers
     else:
         raise HTTPException(status_code=404, detail="Item not found")
+    
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, items: Item):
+    if items.item_id != None and items.cust_id != item_id:
+        raise HTTPException(status_code=400, detail="Item Id does not match Id in the path")
+    conn = sqlite3.connect("db.sqlite")
+    curr = conn.cursor()
+    curr.execute("SELECT item_id FROM items WHERE item_id = ?",(item_id,))
+    id = curr.fetchone()
+    if (id != None):
+        curr.execute("UPDATE items SET item_name =? , price=? WHERE item_id=?",(items.item_name, items.price,item_id))    
+        conn.commit()
+        conn.close()
+        items.item_id = item_id
+        return items
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
 
 
 @app.delete("/customers/{cust_del_id}")
@@ -116,6 +150,18 @@ async def delete_customer(cust_del_id: int):
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("DELETE FROM customers WHERE cust_id = ?",(cust_del_id,))    
+    total_changes = conn.total_changes
+    conn.commit()
+    conn.close()
+    if total_changes != 1:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return total_changes
+
+@app.delete("/items/{item_id}")
+async def delete_customer(item_id: int):
+    conn = sqlite3.connect("db.sqlite")
+    curr = conn.cursor()
+    curr.execute("DELETE FROM items WHERE item_id = ?",(item_id,))    
     total_changes = conn.total_changes
     conn.commit()
     conn.close()
