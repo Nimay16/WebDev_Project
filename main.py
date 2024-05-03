@@ -38,7 +38,7 @@ async def read_customers(id: int, q =None):
     """Get for Customer"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE cust_id=?", (id,))
+    curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE cust_id=?;", (id,))
     customer = curr.fetchone()
     conn.close()
 
@@ -52,7 +52,7 @@ async def read_items(id: int, q =None):
     """Get for Item"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("SELECT item_id, item_name, price FROM items WHERE item_id=?", (id,))
+    curr.execute("SELECT item_id, item_name, price FROM items WHERE item_id=?;", (id,))
     item = curr.fetchone()
     conn.close()
 
@@ -70,16 +70,16 @@ async def read_order(id: int, q =None):
     """Get for Order"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("SELECT order_id, notes, timestamp, cust_id FROM orders WHERE order_id=?", (id,))
+    curr.execute("SELECT order_id, notes, timestamp, cust_id FROM orders WHERE order_id=?;", (id,))
     order_details = curr.fetchone()
     if order_details is not None:
-        curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE cust_id=?", (order_details[3],))
+        curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE cust_id=?;", (order_details[3],))
         order_cust = curr.fetchone()
-        curr.execute("SELECT item_id FROM order_list WHERE order_id=?", (id,))
+        curr.execute("SELECT item_id FROM order_list WHERE order_id=?;", (id,))
         item_ids = curr.fetchall()
         items = []
         for item_id in item_ids:
-            curr.execute("SELECT item_id, item_name, price FROM items WHERE item_id=?", (item_id[0],))
+            curr.execute("SELECT item_id, item_name, price FROM items WHERE item_id=?;", (item_id[0],))
             item = curr.fetchone()
             if item:
                 items.append({
@@ -107,7 +107,7 @@ async def create_customer(customers: Customers):
         raise HTTPException(status_code=400, detail="cust_id cannot be not null for post method.")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("INSERT INTO customers(cust_name, phone) VALUES(?,?)",(customers.name, customers.phone))
+    curr.execute("INSERT INTO customers(cust_name, phone) VALUES(?,?);",(customers.name, customers.phone))
     customers.cust_id = curr.lastrowid
     conn.commit()
     conn.close()
@@ -120,7 +120,7 @@ async def create_item(items: Item):
         raise HTTPException(status_code=400, detail="item_id cannot be not null for post method.")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("INSERT INTO items(item_name, price) VALUES(?,?)",(items.item_name, items.price))
+    curr.execute("INSERT INTO items(item_name, price) VALUES(?,?);",(items.item_name, items.price))
     items.item_id = curr.lastrowid
     conn.commit()
     conn.close()
@@ -139,25 +139,25 @@ async def create_order(orders: Order):
     curr = conn.cursor()
     item_details = []
     for item in orders.item_name:
-        curr.execute("SELECT item_id FROM items WHERE item_name=?", (item,))
+        curr.execute("SELECT item_id FROM items WHERE item_name=?;", (item,))
         items = curr.fetchone()
         if items is None:
             conn.close()
             raise HTTPException(status_code=404, detail="Item not found")
         else:
             item_details.append(items[0])
-    curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE phone =?",(orders.customer_phone,))
+    curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE phone =?;",(orders.customer_phone,))
     cust_details = curr.fetchone()
     if cust_details is not None:
-        curr.execute("INSERT INTO orders(notes, timestamp, cust_id) VALUES(?,?,?)",(orders.notes, orders.timestamp,cust_details[0]))
+        curr.execute("INSERT INTO orders(notes, timestamp, cust_id) VALUES(?,?,?);",(orders.notes, orders.timestamp,cust_details[0]))
         order_id = curr.lastrowid
     else:
-        curr.execute("INSERT INTO customers(cust_name, phone) VALUES(?,?)",(orders.customer_name, orders.customer_phone))
+        curr.execute("INSERT INTO customers(cust_name, phone) VALUES(?,?);",(orders.customer_name, orders.customer_phone))
         cust_id = curr.lastrowid
-        curr.execute("INSERT INTO orders(notes, timestamp, cust_id) VALUES(?,?,?)",(orders.notes, orders.timestamp,cust_id))
+        curr.execute("INSERT INTO orders(notes, timestamp, cust_id) VALUES(?,?,?);",(orders.notes, orders.timestamp,cust_id))
         order_id = curr.lastrowid
     for item_id in item_details:
-        curr.execute("INSERT INTO order_list(order_id,item_id) VALUES(?,?)",(order_id,item_id))
+        curr.execute("INSERT INTO order_list(order_id,item_id) VALUES(?,?);",(order_id,item_id))
     orders.order_id = order_id
     conn.commit()
     conn.close()
@@ -170,10 +170,10 @@ async def update_customer(cust_id: int, customers: Customers):
         raise HTTPException(status_code=400, detail="Customer Id does not match Id in the path")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("SELECT cust_id FROM customers WHERE cust_id = ?",(cust_id,))
+    curr.execute("SELECT cust_id FROM customers WHERE cust_id = ?;",(cust_id,))
     id = curr.fetchone()
     if id is not None:
-        curr.execute("UPDATE customers SET cust_name =? , phone=? WHERE cust_id=?",(customers.name, customers.phone,cust_id))
+        curr.execute("UPDATE customers SET cust_name =? , phone=? WHERE cust_id=?;",(customers.name, customers.phone,cust_id))
         conn.commit()
         conn.close()
         customers.cust_id = cust_id
@@ -188,10 +188,10 @@ async def update_item(item_id: int, items: Item):
         raise HTTPException(status_code=400, detail="Item Id does not match Id in the path")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("SELECT item_id FROM items WHERE item_id = ?",(item_id,))
+    curr.execute("SELECT item_id FROM items WHERE item_id = ?;",(item_id,))
     id = curr.fetchone()
     if id is not None:
-        curr.execute("UPDATE items SET item_name =? , price=? WHERE item_id=?",(items.item_name, items.price,item_id))
+        curr.execute("UPDATE items SET item_name =? , price=? WHERE item_id=?;",(items.item_name, items.price,item_id))
         conn.commit()
         conn.close()
         items.item_id = item_id
@@ -210,18 +210,18 @@ async def update_order(order_id: int,orders: Order):
     curr = conn.cursor()
     item_details = []
     for item in orders.item_name:
-        curr.execute("SELECT item_id FROM items WHERE item_name=?", (item,))
+        curr.execute("SELECT item_id FROM items WHERE item_name=?;", (item,))
         items = curr.fetchone()
         if items is None:
             conn.close()
             raise HTTPException(status_code=404, detail="Item not found")
         else:
             item_details.append(items[0])
-        curr.execute("UPDATE orders SET notes=?",(orders.notes,))
+        curr.execute("UPDATE orders SET notes=?;",(orders.notes,))
         orders.order_id = order_id
     for item_id in item_details:
-        curr.execute("DELETE FROM order_list WHERE order_id = ?",(order_id,))
-        curr.execute("INSERT INTO order_list(order_id,item_id) VALUES(?,?)",(order_id,item_id))
+        curr.execute("DELETE FROM order_list WHERE order_id = ?;",(order_id,))
+        curr.execute("INSERT INTO order_list(order_id,item_id) VALUES(?,?);",(order_id,item_id))
     orders.order_id = order_id
     item_names=[]
     for items in orders.item_name:
@@ -240,13 +240,13 @@ async def delete_customer(cust_del_id: int):
     """Delete for Customer"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("DELETE FROM customers WHERE cust_id = ?",(cust_del_id,))
+    curr.execute("DELETE FROM customers WHERE cust_id = ?;",(cust_del_id,))
     total_changes = conn.total_changes
-    curr.execute("SELECT order_id FROM orders WHERE cust_id = ?",(cust_del_id,))
+    curr.execute("SELECT order_id FROM orders WHERE cust_id = ?;",(cust_del_id,))
     order_id = curr.fetchall()
     for order in order_id:
-        curr.execute("DELETE FROM order_list WHERE order_id = ?",(order))
-    curr.execute("DELETE FROM orders WHERE cust_id = ?",(cust_del_id,))
+        curr.execute("DELETE FROM order_list WHERE order_id = ?;",(order))
+    curr.execute("DELETE FROM orders WHERE cust_id = ?;",(cust_del_id,))
     conn.commit()
     conn.close()
     if total_changes ==0:
@@ -258,9 +258,9 @@ async def delete_item(item_id: int):
     """Delete for Item"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("DELETE FROM items WHERE item_id = ?",(item_id,))
+    curr.execute("DELETE FROM items WHERE item_id = ?;",(item_id,))
     total_changes = conn.total_changes
-    curr.execute("DELETE FROM order_list WHERE item_id = ?",(item_id,))
+    curr.execute("DELETE FROM order_list WHERE item_id = ?;",(item_id,))
     conn.commit()
     conn.close()
     if total_changes ==0:
@@ -272,9 +272,9 @@ async def delete_order(order_id: int):
     """Delete for Order"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
-    curr.execute("DELETE FROM orders WHERE order_id = ?",(order_id,))
+    curr.execute("DELETE FROM orders WHERE order_id = ?;",(order_id,))
     total_changes = conn.total_changes
-    curr.execute("DELETE FROM order_list WHERE order_id = ?",(order_id,))
+    curr.execute("DELETE FROM order_list WHERE order_id = ?;",(order_id,))
     conn.commit()
     conn.close()
     if total_changes ==0:
