@@ -1,20 +1,24 @@
-from fastapi import FastAPI,HTTPException
-from pydantic import BaseModel
+"""Code for final project"""
 from typing import List
 import time
 import sqlite3
+from fastapi import FastAPI,HTTPException
+from pydantic import BaseModel
 
 class Customers(BaseModel):
+    """Customer Base Model"""
     cust_id: int | None = None
     name: str
     phone: str
 
 class Item(BaseModel):
+    """Item Base Model"""
     item_id: int | None = None
     item_name: str
     price: float
 
 class Order(BaseModel):
+    """Order Base Model"""
     order_id: int | None = None
     timestamp: int | None = None
     customer_name: str | None = None
@@ -26,30 +30,33 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
+    """Root function"""
     return{"message":"Hello world"}
 
 @app.get("/customers/{id}")
 async def read_customers(id: int, q =None):
+    """Get for Customer"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE cust_id=?", (id,))
     customer = curr.fetchone()
     conn.close()
 
-    if(customer != None):
+    if customer is not None:
         return Customers(cust_id= customer[0], name = customer[1], phone = customer[2])
     else:
         raise HTTPException(status_code=404, detail="Item not found")
 
 @app.get("/items/{id}")
 async def read_items(id: int, q =None):
+    """Get for Item"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("SELECT item_id, item_name, price FROM items WHERE item_id=?", (id,))
     item = curr.fetchone()
     conn.close()
 
-    if(item != None):
+    if item is not None:
         return{
             "id": item[0],
             "name": item[1],
@@ -60,11 +67,12 @@ async def read_items(id: int, q =None):
 
 @app.get("/oders/{id}")
 async def read_order(id: int, q =None):
+    """Get for Order"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("SELECT order_id, notes, timestamp, cust_id FROM orders WHERE order_id=?", (id,))
     order_details = curr.fetchone()
-    if order_details != None:
+    if order_details is not None:
         curr.execute("SELECT cust_id, cust_name, phone FROM customers WHERE cust_id=?", (order_details[3],))
         order_cust = curr.fetchone()
         curr.execute("SELECT item_id FROM order_list WHERE order_id=?", (id,))
@@ -94,7 +102,8 @@ async def read_order(id: int, q =None):
 
 @app.post("/coustomers/")
 async def create_customer(customers: Customers):
-    if customers.cust_id != None:
+    """Post for Customer"""
+    if customers.cust_id is not None:
         raise HTTPException(status_code=400, detail="cust_id cannot be not null for post method.")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
@@ -106,7 +115,8 @@ async def create_customer(customers: Customers):
 
 @app.post("/items/")
 async def create_item(items: Item):
-    if items.item_id != None:
+    """Post for Item"""
+    if items.item_id is not None:
         raise HTTPException(status_code=400, detail="item_id cannot be not null for post method.")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
@@ -118,9 +128,10 @@ async def create_item(items: Item):
 
 @app.post("/orders/")
 async def create_order(orders: Order):
-    if orders.order_id != None:
+    """Post for Order"""
+    if orders.order_id is not None:
         raise HTTPException(status_code=400, detail="order_id cannot be not null for post method.")
-    if orders.timestamp != None:
+    if orders.timestamp is not None:
         raise HTTPException(status_code=400, detail="timestamp cannot be not null.")
     timestamp = int(time.time())
     orders.timestamp = timestamp
@@ -154,31 +165,33 @@ async def create_order(orders: Order):
 
 @app.put("/customers/{cust_id}")
 async def update_customer(cust_id: int, customers: Customers):
-    if customers.cust_id != None and customers.cust_id != cust_id:
+    """Put for Customer"""
+    if customers.cust_id is not None and customers.cust_id != cust_id:
         raise HTTPException(status_code=400, detail="Customer Id does not match Id in the path")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("SELECT cust_id FROM customers WHERE cust_id = ?",(cust_id,))
     id = curr.fetchone()
-    if (id != None):
-        curr.execute("UPDATE customers SET cust_name =? , phone=? WHERE cust_id=?",(customers.name, customers.phone,cust_id))    
+    if id is not None:
+        curr.execute("UPDATE customers SET cust_name =? , phone=? WHERE cust_id=?",(customers.name, customers.phone,cust_id))
         conn.commit()
         conn.close()
         customers.cust_id = cust_id
         return customers
     else:
         raise HTTPException(status_code=404, detail="Item not found")
-    
+
 @app.put("/items/{item_id}")
 async def update_item(item_id: int, items: Item):
-    if items.item_id != None and items.item_id != item_id:
+    """Put for Item"""
+    if items.item_id is not None and items.item_id != item_id:
         raise HTTPException(status_code=400, detail="Item Id does not match Id in the path")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("SELECT item_id FROM items WHERE item_id = ?",(item_id,))
     id = curr.fetchone()
-    if (id != None):
-        curr.execute("UPDATE items SET item_name =? , price=? WHERE item_id=?",(items.item_name, items.price,item_id))    
+    if id is not None:
+        curr.execute("UPDATE items SET item_name =? , price=? WHERE item_id=?",(items.item_name, items.price,item_id))
         conn.commit()
         conn.close()
         items.item_id = item_id
@@ -188,9 +201,10 @@ async def update_item(item_id: int, items: Item):
 
 @app.put("/orders/{order_id}")
 async def update_order(order_id: int,orders: Order):
-    if orders.order_id != None and orders.order_id != order_id:
+    """Put for Order"""
+    if orders.order_id is not None and orders.order_id != order_id:
         raise HTTPException(status_code=400, detail="Order Id does not match Id in the path.")
-    if orders.timestamp != None or orders.customer_name != None or orders.customer_phone != None:
+    if orders.timestamp is not None or orders.customer_name is not None or orders.customer_phone is not None:
         raise HTTPException(status_code=400, detail="Timestamp or Customer name and Phone number cannot be changed.")
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
@@ -223,6 +237,7 @@ async def update_order(order_id: int,orders: Order):
 
 @app.delete("/customers/{cust_del_id}")
 async def delete_customer(cust_del_id: int):
+    """Delete for Customer"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("DELETE FROM customers WHERE cust_id = ?",(cust_del_id,))
@@ -240,6 +255,7 @@ async def delete_customer(cust_del_id: int):
 
 @app.delete("/items/{item_id}")
 async def delete_item(item_id: int):
+    """Delete for Item"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("DELETE FROM items WHERE item_id = ?",(item_id,))
@@ -253,6 +269,7 @@ async def delete_item(item_id: int):
 
 @app.delete("/order/{order_id}")
 async def delete_order(order_id: int):
+    """Delete for Order"""
     conn = sqlite3.connect("db.sqlite")
     curr = conn.cursor()
     curr.execute("DELETE FROM orders WHERE order_id = ?",(order_id,))
